@@ -43,10 +43,12 @@ If the `X-Tls-Client-Subject` header is present,
 `auth-proxy` assumes the user presented a valid client certificate,
 and that this header contains the value of the certificate's subject name field.
 
-| CN           | Name  |
-| emailAddress | Email |
-| UID          | UID   |
-| OU           | GID   |
+| Subject      | User info |
+| ------------ | --------- |
+| CN           | Name      |
+| emailAddress | Email     |
+| UID          | UID       |
+| OU           | GID       |
 
 ### Generating the CA certificate
 
