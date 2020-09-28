@@ -31,7 +31,7 @@ You'll also need to specify the port to listen on and upstream URL:
 ```
 GITHUB_OAUTH2_CLIENT_ID=xxx \
 GITHUB_OAUTH2_CLIENT_SECRET=xxx \
-GITHUB_OAUTH2_CALLBACK_URL=https://xxx.xxx.xxx/oauth2/callback \
+GITHUB_OAUTH2_CALLBACK_URL=https://example.com/oauth2/callback \
 PORT=9000 \
 UPSTREAM_URL="http://localhost:9001" \
 ./auth-proxy
@@ -79,5 +79,6 @@ $ openssl x509 -req -sha256 -CA client-ca.cert.pem -CAkey client-ca.key.pem -in 
 ### Connect
 
 ```
-curl --cert client.cert.pem --key client.key.pem https://...
+$ curl --cert client.cert.pem --key client.key.pem https://example.com/auth/userinfo
+{"name":"My Name","email":"me@example.com","user":"me","groups":["gid2","gid1"]}
 ```
