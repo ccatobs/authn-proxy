@@ -30,10 +30,10 @@ var (
 )
 
 type UserInfo struct {
-	Name  string   `json:"name"`
-	Email string   `json:"email"`
-	UID   string   `json:"uid"`
-	GIDs  []string `json:"gids"`
+	Name   string   `json:"name"`
+	Email  string   `json:"email"`
+	User   string   `json:"user"`
+	Groups []string `json:"groups"`
 }
 
 func httpError(w http.ResponseWriter, code int) {
@@ -74,9 +74,9 @@ func getUserInfoFromGithub(ctx context.Context, client *http.Client) (userInfo U
 	log.Printf("%+v", result)
 	userInfo.Email = result.Data.Viewer.Email
 	userInfo.Name = result.Data.Viewer.Name
-	userInfo.UID = result.Data.Viewer.Login
+	userInfo.User = result.Data.Viewer.Login
 	for _, node := range result.Data.Viewer.Org.Teams.Nodes {
-		userInfo.GIDs = append(userInfo.GIDs, node.Slug)
+		userInfo.Groups = append(userInfo.Groups, node.Slug)
 	}
 	return
 }
@@ -152,10 +152,10 @@ func userInfoFromCertSubject(subject string, userInfo *UserInfo) error {
 		userInfo.Email = v[0]
 	}
 	if v, ok := m["UID"]; ok {
-		userInfo.UID = v[0]
+		userInfo.User = v[0]
 	}
 	if v, ok := m["OU"]; ok {
-		userInfo.GIDs = v
+		userInfo.Groups = v
 	}
 	return nil
 }
@@ -220,7 +220,7 @@ func main() {
 			return
 		}
 
-		if len(userInfo.GIDs) == 0 {
+		if len(userInfo.Groups) == 0 {
 			log.Print("not a member of any groups")
 			httpError(w, http.StatusUnauthorized)
 			return
@@ -294,8 +294,8 @@ func main() {
 		log.Printf("userInfo: %+v", userInfo)
 		r.Header.Set("X-Auth-Name", userInfo.Name)
 		r.Header.Set("X-Auth-Email", userInfo.Email)
-		r.Header.Set("X-Auth-Uid", userInfo.UID)
-		r.Header.Set("X-Auth-Gids", strings.Join(userInfo.GIDs, ","))
+		r.Header.Set("X-Auth-User", userInfo.User)
+		r.Header.Set("X-Auth-Groups", strings.Join(userInfo.Groups, ","))
 		proxies.ServeHTTP(w, r)
 	})
 

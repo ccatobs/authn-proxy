@@ -12,8 +12,8 @@ Upstream, the following headers are set:
 ```
 X-Auth-Name
 X-Auth-Email
-X-Auth-Uid
-X-Auth-Gids
+X-Auth-User
+X-Auth-Groups
 ```
 Downstream, the above information is available at `/auth/userinfo` as JSON.
 
@@ -47,8 +47,8 @@ and that this header contains the value of the certificate's subject name field.
 | ------------ | --------- |
 | CN           | Name      |
 | emailAddress | Email     |
-| UID          | UID       |
-| OU           | GID       |
+| UID          | User      |
+| OU           | Groups    |
 
 ### Generating the CA certificate
 
