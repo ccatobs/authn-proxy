@@ -12,6 +12,10 @@ jobs:
         name: Checkout
         uses: actions/checkout@v2
       -
+        name: Set up docker buildx
+        uses: docker/setup-buildx-action@v1
+        id: buildx
+      -
         name: Login to GCR
         uses: docker/login-action@v1
         with:
@@ -21,11 +25,12 @@ jobs:
       -
         name: Build and push
         uses: docker/build-push-action@v2
-        id: docker_build
+        id: build_push
         with:
+          builder: ${{ steps.buildx.outputs.name }}
           push: true
-          tags: authn-proxy:latest
+          tags: gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/authn-proxy:latest
       -
         name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
+        run: echo ${{ steps.build_push.outputs.digest }}
 
