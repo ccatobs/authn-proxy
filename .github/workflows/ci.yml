@@ -28,6 +28,8 @@ jobs:
         id: build_push
         with:
           builder: ${{ steps.buildx.outputs.name }}
+          context: .
+          file: ./Dockerfile
           push: true
           tags: gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/authn-proxy:latest
       -
