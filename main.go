@@ -30,6 +30,10 @@ var (
 	upstreamURL        = os.Getenv("UPSTREAM_URL")
 )
 
+type OAuth2State struct {
+	redirectURL string
+}
+
 type UserInfo struct {
 	Name   string   `json:"name"`
 	Email  string   `json:"email"`
@@ -201,16 +205,16 @@ func main() {
 	}
 	http.HandleFunc(u.Path, func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		state := r.URL.Query().Get("state")
-		log.Printf("got state: %s", state)
-		var redirectURL string
-		err = stateSerde.Decode("redirectURL", state, &redirectURL)
+		stateString := r.URL.Query().Get("state")
+		log.Printf("got state: %s", stateString)
+		var state OAuth2State
+		err = stateSerde.Decode("state", stateString, &state)
 		if err != nil {
 			log.Print(err)
 			httpError(w, http.StatusBadRequest)
 			return
 		}
-		log.Printf("got redirectURL %s", redirectURL)
+		log.Printf("got redirectURL %s", state.redirectURL)
 		oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
 		if err != nil {
 			log.Print(err)
@@ -251,7 +255,7 @@ func main() {
 		}
 		log.Printf("cookie = %+v", cookie)
 		http.SetCookie(w, cookie)
-		http.Redirect(w, r, redirectURL, http.StatusFound)
+		http.Redirect(w, r, state.redirectURL, http.StatusFound)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -278,14 +282,15 @@ func main() {
 
 		if !authenticated {
 			log.Printf("not logged in")
-			state, err := stateSerde.Encode("redirectURL", r.RequestURI)
+			state := OAuth2State{redirectURL: r.RequestURI}
+			stateString, err := stateSerde.Encode("state", state)
 			if err != nil {
 				log.Print(err)
 				httpError(w, http.StatusInternalServerError)
 				return
 			}
-			log.Printf("sent oauth2 state: %s", state)
-			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
+			log.Printf("sent oauth2 state: %s", stateString)
+			http.Redirect(w, r, oauth2Config.AuthCodeURL(stateString), http.StatusFound)
 			return
 		}
 
