@@ -214,7 +214,7 @@ func main() {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, pattern)
 			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, pattern)
 			origDirector(r)
-			log.Printf("debug: director sent url: ", r.URL)
+			log.Print("debug: director sent url: ", r.URL)
 		}
 		proxies.Handle(pattern, proxy)
 	}
