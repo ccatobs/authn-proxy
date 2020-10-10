@@ -19,15 +19,17 @@ import (
 )
 
 var (
-	cookieName         = "auth1"
-	cookieMaxAge       = 7 * 24 * 60 * 60 // 7 days
+	cookieName   = "auth1"
+	cookieMaxAge = 7 * 24 * 60 * 60 // 7 days
+
 	githubOrg          = os.Getenv("GITHUB_ORG")
-	listenAddress      = ":" + os.Getenv("PORT")
 	oauth2ClientID     = os.Getenv("GITHUB_OAUTH2_CLIENT_ID")
 	oauth2ClientSecret = os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET")
 	oauth2CallbackURL  = os.Getenv("GITHUB_OAUTH2_CALLBACK_URL")
 	oauth2StateMaxAge  = 10 * 60 // 10 minutes
-	upstreamURL        = os.Getenv("UPSTREAM_URL")
+
+	listenAddress = ":" + os.Getenv("PORT")
+	upstreams     = os.Getenv("UPSTREAMS") // e.g., "/api=http://localhost:9001,/some/path=http://host/other/path"
 )
 
 type OAuth2State struct {
@@ -186,17 +188,36 @@ func main() {
 		Scopes:       []string{"user:email", "read:org"},
 	}
 
-	upstream, err := url.Parse(upstreamURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	proxy := httputil.NewSingleHostReverseProxy(upstream)
-	proxy.Director = func(r *http.Request) {
-		r.URL.Host = upstream.Host
-		r.URL.Scheme = upstream.Scheme
-	}
 	proxies := http.NewServeMux()
-	proxies.Handle("/", proxy)
+	for _, upstream := range strings.Split(upstreams, ",") {
+		parts := strings.SplitN(upstream, "=", 2)
+		if len(parts) != 2 {
+			log.Fatal("bad upstream: ", upstream)
+		}
+		pattern := parts[0]
+		u, err := url.Parse(parts[1])
+		if err != nil {
+			log.Fatal(err)
+		}
+		if !strings.HasPrefix(pattern, "/") {
+			log.Fatal("bad pattern: ", pattern)
+		}
+		if u.Scheme == "" || u.Host == "" {
+			log.Fatal("bad upstream URL: ", u)
+		}
+
+		log.Printf("routing %v -> %v", pattern, u)
+		proxy := httputil.NewSingleHostReverseProxy(u)
+		origDirector := proxy.Director
+		proxy.Director = func(r *http.Request) {
+			log.Print("debug: director got url: ", r.URL)
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, pattern)
+			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, pattern)
+			origDirector(r)
+			log.Printf("debug: director sent url: ", r.URL)
+		}
+		proxies.Handle(pattern, proxy)
+	}
 
 	// handle OAuth2 authentication
 	u, err := url.Parse(oauth2CallbackURL)
