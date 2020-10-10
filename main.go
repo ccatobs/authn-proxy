@@ -33,7 +33,7 @@ var (
 )
 
 type OAuth2State struct {
-	redirectURL string
+	RedirectURL string
 }
 
 type UserInfo struct {
@@ -235,7 +235,7 @@ func main() {
 			httpError(w, http.StatusBadRequest)
 			return
 		}
-		log.Printf("got redirectURL %s", state.redirectURL)
+		log.Printf("got redirectURL %s", state.RedirectURL)
 		oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
 		if err != nil {
 			log.Print(err)
@@ -276,7 +276,7 @@ func main() {
 		}
 		log.Printf("cookie = %+v", cookie)
 		http.SetCookie(w, cookie)
-		http.Redirect(w, r, state.redirectURL, http.StatusFound)
+		http.Redirect(w, r, state.RedirectURL, http.StatusFound)
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -303,7 +303,7 @@ func main() {
 
 		if !authenticated {
 			log.Printf("not logged in")
-			state := OAuth2State{redirectURL: r.RequestURI}
+			state := OAuth2State{RedirectURL: r.RequestURI}
 			stateString, err := stateSerde.Encode("state", state)
 			if err != nil {
 				log.Print(err)
