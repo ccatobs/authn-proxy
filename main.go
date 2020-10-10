@@ -188,6 +188,7 @@ func main() {
 		Scopes:       []string{"user:email", "read:org"},
 	}
 
+	// example upstreams value: /api=http://localhost:9001,/some/path=http://host/other/path
 	proxies := http.NewServeMux()
 	for _, upstream := range strings.Split(upstreams, ",") {
 		parts := strings.SplitN(upstream, "=", 2)
@@ -199,20 +200,24 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if !strings.HasPrefix(pattern, "/") {
-			log.Fatal("bad pattern: ", pattern)
-		}
 		if u.Scheme == "" || u.Host == "" {
 			log.Fatal("bad upstream URL: ", u)
 		}
+
+		if !strings.HasPrefix(pattern, "/") {
+			log.Fatal("bad pattern: ", pattern)
+		}
+		// for subtree matching to work, pattern has to end in '/'
+		patternWithoutTrailingSlash := strings.TrimRight(pattern, "/")
+		pattern = patternWithoutTrailingSlash + "/"
 
 		log.Printf("routing %v -> %v", pattern, u)
 		proxy := httputil.NewSingleHostReverseProxy(u)
 		origDirector := proxy.Director
 		proxy.Director = func(r *http.Request) {
 			log.Print("debug: director got url: ", r.URL)
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, pattern)
-			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, pattern)
+			r.URL.Path = strings.TrimPrefix(r.URL.Path, patternWithoutTrailingSlash)
+			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, patternWithoutTrailingSlash)
 			origDirector(r)
 			log.Print("debug: director sent url: ", r.URL)
 		}
