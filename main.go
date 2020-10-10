@@ -21,7 +21,7 @@ import (
 var (
 	cookieName         = "auth1"
 	cookieMaxAge       = 7 * 24 * 60 * 60 // 7 days
-	githubOrg          = "ccatp"
+	githubOrg          = os.Getenv("GITHUB_ORG")
 	listenAddress      = ":" + os.Getenv("PORT")
 	oauth2ClientID     = os.Getenv("GITHUB_OAUTH2_CLIENT_ID")
 	oauth2ClientSecret = os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET")
