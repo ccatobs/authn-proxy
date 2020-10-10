@@ -238,7 +238,7 @@ func main() {
 		}
 
 		log.Printf("userInfo = %+v", userInfo)
-		encoded, err := cookieSerde.Encode(cookieName, userInfo)
+		cookieValue, err := cookieSerde.Encode(cookieName, userInfo)
 		if err != nil {
 			log.Print(err)
 			httpError(w, http.StatusInternalServerError)
@@ -251,7 +251,7 @@ func main() {
 			Path:     "/",
 			SameSite: http.SameSiteLaxMode,
 			Secure:   true,
-			Value:    encoded,
+			Value:    cookieValue,
 		}
 		log.Printf("cookie = %+v", cookie)
 		http.SetCookie(w, cookie)
