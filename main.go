@@ -26,6 +26,7 @@ var (
 	oauth2ClientID     = os.Getenv("GITHUB_OAUTH2_CLIENT_ID")
 	oauth2ClientSecret = os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET")
 	oauth2CallbackURL  = os.Getenv("GITHUB_OAUTH2_CALLBACK_URL")
+	oauth2StateMaxAge  = 10 * 60 // 10 minutes
 	upstreamURL        = os.Getenv("UPSTREAM_URL")
 )
 
@@ -161,11 +162,17 @@ func userInfoFromCertSubject(subject string, userInfo *UserInfo) error {
 }
 
 func main() {
-	secure := securecookie.New(
+	cookieSerde := securecookie.New(
 		securecookie.GenerateRandomKey(64),
 		securecookie.GenerateRandomKey(32),
 	)
-	secure.MaxAge(cookieMaxAge)
+	cookieSerde.MaxAge(cookieMaxAge)
+
+	stateSerde := securecookie.New(
+		securecookie.GenerateRandomKey(64),
+		securecookie.GenerateRandomKey(32),
+	)
+	stateSerde.MaxAge(oauth2StateMaxAge)
 
 	oauth2Config := oauth2.Config{
 		ClientID:     oauth2ClientID,
@@ -197,7 +204,7 @@ func main() {
 		state := r.URL.Query().Get("state")
 		log.Printf("got state: %s", state)
 		var redirectURL string
-		err = secure.Decode("redirectURL", state, &redirectURL)
+		err = stateSerde.Decode("redirectURL", state, &redirectURL)
 		if err != nil {
 			log.Print(err)
 			httpError(w, http.StatusBadRequest)
@@ -227,7 +234,7 @@ func main() {
 		}
 
 		log.Printf("userInfo = %+v", userInfo)
-		encoded, err := secure.Encode(cookieName, userInfo)
+		encoded, err := cookieSerde.Encode(cookieName, userInfo)
 		if err != nil {
 			log.Print(err)
 			httpError(w, http.StatusInternalServerError)
@@ -253,7 +260,7 @@ func main() {
 
 		// check for cookie
 		if cookie, err := r.Cookie(cookieName); err == nil {
-			if err = secure.Decode(cookieName, cookie.Value, &userInfo); err == nil {
+			if err = cookieSerde.Decode(cookieName, cookie.Value, &userInfo); err == nil {
 				log.Print("authenticated by cookie")
 				authenticated = true
 			}
@@ -271,7 +278,7 @@ func main() {
 
 		if !authenticated {
 			log.Printf("not logged in")
-			state, err := secure.Encode("redirectURL", r.RequestURI)
+			state, err := stateSerde.Encode("redirectURL", r.RequestURI)
 			if err != nil {
 				log.Print(err)
 				httpError(w, http.StatusInternalServerError)
@@ -281,6 +288,8 @@ func main() {
 			http.Redirect(w, r, oauth2Config.AuthCodeURL(state), http.StatusFound)
 			return
 		}
+
+		// at this point we're authenticated
 
 		if r.URL.Path == "/auth/userinfo" {
 			w.Header().Set("Content-Type", "application/json")
