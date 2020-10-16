@@ -231,7 +231,7 @@ func main() {
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, patternWithoutTrailingSlash)
 			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, patternWithoutTrailingSlash)
 			origDirector(r)
-			log.Print("debug: redirected %s -> %s", origURL, r.URL.String())
+			log.Printf("debug: redirected %s -> %s", origURL, r.URL.String())
 		}
 		proxies.Handle(pattern, proxy)
 	}
