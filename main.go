@@ -215,11 +215,11 @@ func main() {
 		proxy := httputil.NewSingleHostReverseProxy(u)
 		origDirector := proxy.Director
 		proxy.Director = func(r *http.Request) {
-			log.Print("debug: director got url: ", r.URL)
+			origURL := r.URL.String()
 			r.URL.Path = strings.TrimPrefix(r.URL.Path, patternWithoutTrailingSlash)
 			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, patternWithoutTrailingSlash)
 			origDirector(r)
-			log.Print("debug: director sent url: ", r.URL)
+			log.Print("debug: redirected %s -> %s", origURL, r.URL.String())
 		}
 		proxies.Handle(pattern, proxy)
 	}
@@ -232,7 +232,6 @@ func main() {
 	http.HandleFunc(u.Path, func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		stateString := r.URL.Query().Get("state")
-		log.Printf("got state: %s", stateString)
 		var state OAuth2State
 		err = stateSerde.Decode("state", stateString, &state)
 		if err != nil {
@@ -247,7 +246,6 @@ func main() {
 			httpError(w, http.StatusInternalServerError)
 			return
 		}
-		log.Printf("%+v", oauth2Token)
 
 		client := oauth2Config.Client(ctx, oauth2Token)
 		userInfo, err := getUserInfoFromGithub(ctx, client)
@@ -279,7 +277,6 @@ func main() {
 			Secure:   true,
 			Value:    cookieValue,
 		}
-		log.Printf("cookie = %+v", cookie)
 		http.SetCookie(w, cookie)
 		http.Redirect(w, r, state.RedirectURL, http.StatusFound)
 	})
@@ -315,7 +312,6 @@ func main() {
 				httpError(w, http.StatusInternalServerError)
 				return
 			}
-			log.Printf("sent oauth2 state: %s", stateString)
 			http.Redirect(w, r, oauth2Config.AuthCodeURL(stateString), http.StatusFound)
 			return
 		}
