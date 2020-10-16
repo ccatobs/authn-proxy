@@ -167,6 +167,18 @@ func userInfoFromCertSubject(subject string, userInfo *UserInfo) error {
 	return nil
 }
 
+func createAuthCookie(value string, maxAge int) http.Cookie {
+	return http.Cookie{
+		HttpOnly: true,
+		MaxAge:   maxAge,
+		Name:     cookieName,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		Value:    value,
+	}
+}
+
 func main() {
 	cookieSerde := securecookie.New(
 		securecookie.GenerateRandomKey(64),
@@ -268,17 +280,16 @@ func main() {
 			httpError(w, http.StatusInternalServerError)
 			return
 		}
-		cookie := &http.Cookie{
-			HttpOnly: true,
-			MaxAge:   cookieMaxAge,
-			Name:     cookieName,
-			Path:     "/",
-			SameSite: http.SameSiteLaxMode,
-			Secure:   true,
-			Value:    cookieValue,
-		}
-		http.SetCookie(w, cookie)
+		cookie := createAuthCookie(cookieValue, cookieMaxAge)
+		http.SetCookie(w, &cookie)
 		http.Redirect(w, r, state.RedirectURL, http.StatusFound)
+	})
+
+	http.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
+		// clear cookie
+		cookie := createAuthCookie("", -1)
+		http.SetCookie(w, &cookie)
+		w.Write([]byte("logged out"))
 	})
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
