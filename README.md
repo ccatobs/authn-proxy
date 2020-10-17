@@ -21,7 +21,8 @@ Downstream, the above information is available at `/auth/userinfo` as JSON.
 
 To build:
 ```
-go build
+$ go get
+$ go build
 ```
 
 To run, you need the
@@ -34,13 +35,13 @@ GITHUB_OAUTH2_CLIENT_SECRET=xxx \
 GITHUB_OAUTH2_CALLBACK_URL=https://example.com/oauth2/callback \
 PORT=9000 \
 UPSTREAM_URL="http://localhost:9001" \
-./auth-proxy
+./authn-proxy
 ```
 
 ## Client Certificates
 
 If the `X-Tls-Client-Subject` header is present,
-`auth-proxy` assumes the user presented a valid client certificate,
+`authn-proxy` assumes the user presented a valid client certificate,
 and that this header contains the value of the certificate's subject name field.
 
 | Subject      | User info |
@@ -54,7 +55,7 @@ and that this header contains the value of the certificate's subject name field.
 
 This generates a self-signed X.509 certificate authority:
 ```
-openssl req -x509 -newkey rsa:4096 -sha256 -keyout client-ca.key.pem -out client-ca.cert.pem -nodes -days 1000 -subj "/CN=auth-proxy/O=FYST"
+openssl req -x509 -newkey rsa:4096 -sha256 -keyout client-ca.key.pem -out client-ca.cert.pem -nodes -days 1000 -subj "/CN=authn-proxy/O=FYST"
 ```
 
 ### Configuring the downstream TLS termination proxy
