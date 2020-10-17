@@ -2,6 +2,7 @@
 
 Sits between the TLS termination proxy and the application,
 authenticating all requests.
+Session management is via cookies.
 
 Supports the following identity providers:
 
