@@ -28,13 +28,13 @@ $ go build
 To run, you need the
 [Oauth settings from GitHub](https://github.com/organizations/ccatp/settings/applications),
 which are passed via environment variables.
-You'll also need to specify the port to listen on and upstream URL:
+You'll also need to specify the port to listen on and upstream URLs:
 ```
 GITHUB_OAUTH2_CLIENT_ID=xxx \
 GITHUB_OAUTH2_CLIENT_SECRET=xxx \
 GITHUB_OAUTH2_CALLBACK_URL=https://example.com/oauth2/callback \
 PORT=9000 \
-UPSTREAM_URL="http://localhost:9001" \
+UPSTREAMS="/=http://localhost:9001,/api=http://other.host:9002" \
 ./authn-proxy
 ```
 
