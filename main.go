@@ -11,7 +11,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 
 	"github.com/gorilla/securecookie"
@@ -19,25 +18,17 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-func getEnvMatching(key, regex string) string {
-	val := os.Getenv(key)
-	if !regexp.MustCompile(regex).MatchString(val) {
-		log.Fatal("bad environment variable: ", key, "=", val)
-	}
-	return val
-}
-
 var (
 	cookieName   = "auth1"
 	cookieMaxAge = 7 * 24 * 60 * 60 // 7 days
 
-	githubOrg          = getEnvMatching("GITHUB_ORG", `^[0-9A-Za-z]{2,39}$`)
+	githubOrg          = os.Getenv("GITHUB_ORG")
 	oauth2ClientID     = os.Getenv("GITHUB_OAUTH2_CLIENT_ID")
 	oauth2ClientSecret = os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET")
 	oauth2CallbackURL  = os.Getenv("GITHUB_OAUTH2_CALLBACK_URL")
 	oauth2StateMaxAge  = 10 * 60 // 10 minutes
 
-	listenAddress = ":" + getEnvMatching("PORT", `^[0-9]{2,5}$`)
+	listenAddress = ":" + os.Getenv("PORT")
 	upstreams     = os.Getenv("UPSTREAMS") // e.g., "/api=http://localhost:9001,/some/path=http://host/other/path"
 )
 
