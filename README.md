@@ -31,6 +31,7 @@ To run, you need the
 which are passed via environment variables.
 You'll also need to specify the port to listen on and upstream URLs:
 ```
+GITHUB_ORG=example \
 GITHUB_OAUTH2_CLIENT_ID=xxx \
 GITHUB_OAUTH2_CLIENT_SECRET=xxx \
 GITHUB_OAUTH2_CALLBACK_URL=https://example.com/oauth2/callback \
