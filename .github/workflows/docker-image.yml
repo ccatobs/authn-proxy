@@ -2,17 +2,18 @@ name: ci
 
 on:
   push:
-    branches: master
+    tags:
+      - 'v*'
 
 env:
-  GHP_TAG: docker.pkg.github.com/${{ github.repository }}/${{ github.event.repository.name }}:latest
+  GHP_TAG: "docker.pkg.github.com/${{ github.repository }}/${{ github.event.repository.name }}:${{ github.ref_name }}"
 
 jobs:
   main:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Build docker image
         run: docker build --tag "$GHP_TAG" .
@@ -22,4 +23,3 @@ jobs:
 
       - name: Publish image to GitHub Packages
         run: docker push "$GHP_TAG"
-
