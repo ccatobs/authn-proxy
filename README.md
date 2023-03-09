@@ -40,6 +40,12 @@ UPSTREAMS="/=http://localhost:9001,/api=http://other.host:9002" \
 ./authn-proxy
 ```
 
+You can pass the secrets as bare values, or as paths to files containing the value, e.g.:
+```
+GITLAB_OAUTH2_CLIENT_ID=file:/run/secrets/gitlab-client-id
+GITLAB_OAUTH2_CLIENT_SECRET=file:/run/secrets/gitlab-client-secret
+```
+
 ## Client Certificates
 
 If the `X-Tls-Client-Subject` header is present,

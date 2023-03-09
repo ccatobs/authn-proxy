@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -22,10 +23,10 @@ var (
 	cookieName   = "auth1"
 	cookieMaxAge = 7 * 24 * 60 * 60 // 7 days
 
-	githubOrg          = os.Getenv("GITHUB_ORG")
-	oauth2ClientID     = os.Getenv("GITHUB_OAUTH2_CLIENT_ID")
-	oauth2ClientSecret = os.Getenv("GITHUB_OAUTH2_CLIENT_SECRET")
-	oauth2CallbackURL  = os.Getenv("GITHUB_OAUTH2_CALLBACK_URL")
+	githubOrg          = getFromEnv("GITHUB_ORG")
+	oauth2ClientID     = getFromEnv("GITHUB_OAUTH2_CLIENT_ID")
+	oauth2ClientSecret = getFromEnv("GITHUB_OAUTH2_CLIENT_SECRET")
+	oauth2CallbackURL  = getFromEnv("GITHUB_OAUTH2_CALLBACK_URL")
 	oauth2StateMaxAge  = 10 * 60 // 10 minutes
 
 	listenAddress = ":" + os.Getenv("PORT")
@@ -45,6 +46,21 @@ type UserInfo struct {
 
 func httpError(w http.ResponseWriter, code int) {
 	http.Error(w, http.StatusText(code), code)
+}
+
+func getFromEnv(name string) string {
+	v := os.Getenv(name)
+	if v == "" {
+		log.Fatalf("missing required environment variable: %s", name)
+	}
+	if strings.HasPrefix(v, "file:/") {
+		b, err := ioutil.ReadFile(v[5:])
+		if err != nil {
+			log.Fatal(err)
+		}
+		v = strings.TrimSpace(string(b))
+	}
+	return v
 }
 
 func getUserInfoFromGithub(ctx context.Context, client *http.Client) (userInfo UserInfo, err error) {
