@@ -19,18 +19,10 @@ import (
 	"golang.org/x/oauth2/github"
 )
 
-var (
-	cookieName   = "auth1"
-	cookieMaxAge = 7 * 24 * 60 * 60 // 7 days
-
-	githubOrg          = getFromEnv("GITHUB_ORG")
-	oauth2ClientID     = getFromEnv("GITHUB_OAUTH2_CLIENT_ID")
-	oauth2ClientSecret = getFromEnv("GITHUB_OAUTH2_CLIENT_SECRET")
-	oauth2CallbackURL  = getFromEnv("GITHUB_OAUTH2_CALLBACK_URL")
-	oauth2StateMaxAge  = 10 * 60 // 10 minutes
-
-	listenAddress = ":" + os.Getenv("PORT")
-	upstreams     = os.Getenv("UPSTREAMS") // e.g., "/api=http://localhost:9001,/some/path=http://host/other/path"
+const (
+	cookieName        = "auth1"
+	cookieMaxAge      = 7 * 24 * 60 * 60 // 7 days
+	oauth2StateMaxAge = 10 * 60          // 10 minutes
 )
 
 type OAuth2State struct {
@@ -63,7 +55,7 @@ func getFromEnv(name string) string {
 	return v
 }
 
-func getUserInfoFromGithub(ctx context.Context, client *http.Client) (userInfo UserInfo, err error) {
+func getUserInfoFromGithub(ctx context.Context, client *http.Client, githubOrg string) (userInfo UserInfo, err error) {
 	query := `{"query": "query{viewer{name,login,email,organization(login:\"` + githubOrg + `\"){teams(first:100){nodes{slug}}}}}"}`
 	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.github.com/graphql", bytes.NewBufferString(query))
 	if err != nil {
@@ -208,6 +200,11 @@ func main() {
 	)
 	stateSerde.MaxAge(oauth2StateMaxAge)
 
+	githubOrg := getFromEnv("GITHUB_ORG")
+	oauth2ClientID := getFromEnv("GITHUB_OAUTH2_CLIENT_ID")
+	oauth2ClientSecret := getFromEnv("GITHUB_OAUTH2_CLIENT_SECRET")
+	oauth2CallbackURL := getFromEnv("GITHUB_OAUTH2_CALLBACK_URL")
+
 	oauth2Config := oauth2.Config{
 		ClientID:     oauth2ClientID,
 		ClientSecret: oauth2ClientSecret,
@@ -217,6 +214,7 @@ func main() {
 	}
 
 	// example upstreams value: /api=http://localhost:9001,/some/path=http://host/other/path
+	upstreams := getFromEnv("UPSTREAMS")
 	proxies := http.NewServeMux()
 	for _, upstream := range strings.Split(upstreams, ",") {
 		parts := strings.SplitN(upstream, "=", 2)
@@ -276,7 +274,7 @@ func main() {
 		}
 
 		client := oauth2Config.Client(ctx, oauth2Token)
-		userInfo, err := getUserInfoFromGithub(ctx, client)
+		userInfo, err := getUserInfoFromGithub(ctx, client, githubOrg)
 		if err != nil {
 			log.Print(err)
 			httpError(w, http.StatusInternalServerError)
@@ -362,6 +360,7 @@ func main() {
 		proxies.ServeHTTP(w, r)
 	})
 
+	listenAddress := ":" + os.Getenv("PORT")
 	log.Printf("listening on %s", listenAddress)
 	log.Fatal(http.ListenAndServe(listenAddress, nil))
 }
