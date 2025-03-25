@@ -5,21 +5,47 @@ on:
     tags:
       - 'v*'
 
-env:
-  GHP_TAG: "docker.pkg.github.com/${{ github.repository }}/${{ github.event.repository.name }}:${{ github.ref_name }}"
-
 jobs:
   main:
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    env:
+      GHP_TAG: "ghcr.io/${{ github.repository }}/${{ github.event.repository.name }}:${{ github.ref_name }}"
+      package_name: "${{ github.event.repository.name }}/${{ github.event.repository.name }}"
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Build docker image
         run: docker build --tag "$GHP_TAG" .
 
-      - name: Login to Github Packages
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u "${{ github.actor }}" --password-stdin
+      - name: Login to GitHub Packages
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish image to GitHub Packages
         run: docker push "$GHP_TAG"
+
+      - name: Delete all untagged packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "${{ env.package_name }}"
+          package-type: container
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: true
+
+      - name: Delete all but 10 newest packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: "${{ env.package_name }}"
+          package-type: container
+          min-versions-to-keep: 10
+
