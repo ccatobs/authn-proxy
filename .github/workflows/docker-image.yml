@@ -14,8 +14,8 @@ jobs:
       packages: write
 
     env:
-      GHP_TAG: "ghcr.io/${{ github.repository }}/${{ github.event.repository.name }}:${{ github.ref_name }}"
-      package_name: "${{ github.event.repository.name }}/${{ github.event.repository.name }}"
+      GHP_TAG: "ghcr.io/${{ github.repository }}:${{ github.ref_name }}"
+      package_name: "${{ github.event.repository.name }}"
 
     steps:
       - name: Checkout
