@@ -1,11 +1,11 @@
-FROM golang:1.17 as build
+FROM golang:1.23 AS build
 WORKDIR /go/src/github.com/ccatp/authn-proxy
 COPY . .
 RUN go get -d -v
 RUN go test -v
 RUN CGO_ENABLED=0 GOOS=linux go install -a -v
 
-FROM alpine:latest as certs
+FROM alpine:latest AS certs
 RUN apk --update add ca-certificates
 
 FROM scratch
