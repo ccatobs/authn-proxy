@@ -1,7 +1,7 @@
-FROM golang:1.23 AS build
+FROM golang:1 AS build
 WORKDIR /go/src/github.com/ccatp/authn-proxy
 COPY . .
-RUN go get -d -v
+RUN go get -v
 RUN go test -v
 RUN CGO_ENABLED=0 GOOS=linux go install -a -v
 
