@@ -112,6 +112,9 @@ func parseCertSubject(subject string) (map[string][]string, error) {
 			case ',', '=', '+', '<', '>', '#', ';', '"', '\\':
 				part = part + string(rune)
 			default:
+				if i+2 > len(subject) {
+					return nil, fmt.Errorf("bad hex escape in distinguishedName: %s", subject)
+				}
 				bs, err := hex.DecodeString(subject[i : i+2])
 				if err != nil {
 					return nil, err
