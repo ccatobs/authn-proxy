@@ -56,8 +56,17 @@ func getFromEnv(name string) string {
 }
 
 func getUserInfoFromGithub(ctx context.Context, client *http.Client, githubOrg string) (userInfo UserInfo, err error) {
-	query := `{"query": "query{viewer{name,login,email,organization(login:\"` + githubOrg + `\"){teams(first:100){nodes{slug}}}}}"}`
-	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.github.com/graphql", bytes.NewBufferString(query))
+	body, err := json.Marshal(struct {
+		Query     string            `json:"query"`
+		Variables map[string]string `json:"variables"`
+	}{
+		Query:     `query($org: String!) { viewer { name login email organization(login: $org) { teams(first: 100) { nodes { slug } } } } }`,
+		Variables: map[string]string{"org": githubOrg},
+	})
+	if err != nil {
+		return
+	}
+	req, err := http.NewRequestWithContext(ctx, "POST", "https://api.github.com/graphql", bytes.NewReader(body))
 	if err != nil {
 		return
 	}
