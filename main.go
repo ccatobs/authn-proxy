@@ -372,7 +372,10 @@ func main() {
 		proxies.ServeHTTP(w, r)
 	})
 
-	listenAddress := ":" + os.Getenv("PORT")
+	listenAddress := os.Getenv("LISTEN_ADDRESS")
+	if listenAddress == "" {
+		listenAddress = ":" + os.Getenv("PORT")
+	}
 	log.Printf("listening on %s", listenAddress)
 	log.Fatal(http.ListenAndServe(listenAddress, nil))
 }

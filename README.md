@@ -40,6 +40,13 @@ UPSTREAMS="/=http://localhost:9001,/api=http://other.host:9002" \
 ./authn-proxy
 ```
 
+By default the proxy binds all interfaces on `PORT`. To restrict it to a specific
+interface — e.g. loopback, so only a same-host reverse proxy can reach it — set
+`LISTEN_ADDRESS` (which takes precedence over `PORT`):
+```
+LISTEN_ADDRESS=127.0.0.1:9000
+```
+
 You can pass the secrets as bare values, or as paths to files containing the value, e.g.:
 ```
 GITLAB_OAUTH2_CLIENT_ID=file:/run/secrets/gitlab-client-id
