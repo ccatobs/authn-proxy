@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gorilla/securecookie"
 	"golang.org/x/oauth2"
@@ -393,6 +394,14 @@ func main() {
 	if listenAddress == "" {
 		listenAddress = ":" + os.Getenv("PORT")
 	}
+	server := &http.Server{
+		Addr: listenAddress,
+		// Slowloris hardening. ReadTimeout/WriteTimeout are intentionally left
+		// unset: this is a reverse proxy, and capping them would truncate slow
+		// or streaming upstream request/response bodies.
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       120 * time.Second,
+	}
 	log.Printf("listening on %s", listenAddress)
-	log.Fatal(http.ListenAndServe(listenAddress, nil))
+	log.Fatal(server.ListenAndServe())
 }
