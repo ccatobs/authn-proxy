@@ -75,6 +75,9 @@ func getUserInfoFromGithub(ctx context.Context, client *http.Client, githubOrg s
 		return
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return userInfo, fmt.Errorf("github graphql: unexpected status %s", resp.Status)
+	}
 	var result struct {
 		Data struct {
 			Viewer struct {
@@ -90,12 +93,17 @@ func getUserInfoFromGithub(ctx context.Context, client *http.Client, githubOrg s
 				} `json:"organization"`
 			} `json:"viewer"`
 		} `json:"data"`
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
 	}
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		return
 	}
-	log.Printf("%+v", result)
+	if len(result.Errors) > 0 {
+		return userInfo, fmt.Errorf("github graphql error: %s", result.Errors[0].Message)
+	}
 	userInfo.Email = result.Data.Viewer.Email
 	userInfo.Name = result.Data.Viewer.Name
 	userInfo.User = result.Data.Viewer.Login
