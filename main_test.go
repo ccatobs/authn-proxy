@@ -51,6 +51,12 @@ func TestParseCertSubject(t *testing.T) {
 	testParseCertSubject(t, `SN=Lu\C4\8Di\C4\87`, map[string][]string{
 		"SN": {"Lu\xC4\x8Di\xC4\x87"},
 	})
+
+	// empty attribute value must not panic (regression test)
+	testParseCertSubject(t, `CN=My Name,OU=`, map[string][]string{
+		"CN": {"My Name"},
+		"OU": {""},
+	})
 }
 
 func TestParseCertSubjectErrors(t *testing.T) {

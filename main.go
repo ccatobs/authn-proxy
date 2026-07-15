@@ -155,7 +155,7 @@ func parseCertSubject(subject string) (map[string][]string, error) {
 			return nil, fmt.Errorf("bad attributeTypeAndValue: %s", kv)
 		}
 		k, v := kv[:i], kv[i+1:]
-		if v[0] == '#' {
+		if len(v) > 0 && v[0] == '#' {
 			bs, err := hex.DecodeString(v[1:])
 			if err != nil {
 				return nil, err
