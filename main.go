@@ -195,6 +195,15 @@ func userInfoFromCertSubject(subject string, userInfo *UserInfo) error {
 	return nil
 }
 
+// localRedirectTarget returns dest only if it's a safe same-site path, else "/".
+// This blocks open redirects to absolute or protocol-relative ("//evil.com") URLs.
+func localRedirectTarget(dest string) string {
+	if strings.HasPrefix(dest, "/") && !strings.HasPrefix(dest, "//") && !strings.HasPrefix(dest, "/\\") {
+		return dest
+	}
+	return "/"
+}
+
 func createAuthCookie(value string, maxAge int) http.Cookie {
 	return http.Cookie{
 		HttpOnly: true,
@@ -316,7 +325,7 @@ func main() {
 		}
 		cookie := createAuthCookie(cookieValue, cookieMaxAge)
 		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, state.RedirectURL, http.StatusFound)
+		http.Redirect(w, r, localRedirectTarget(state.RedirectURL), http.StatusFound)
 	})
 
 	http.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {

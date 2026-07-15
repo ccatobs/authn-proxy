@@ -59,6 +59,23 @@ func TestParseCertSubject(t *testing.T) {
 	})
 }
 
+func TestLocalRedirectTarget(t *testing.T) {
+	cases := map[string]string{
+		"/dashboard":       "/dashboard",
+		"/a/b?c=d":         "/a/b?c=d",
+		"//evil.com":       "/",
+		"/\\evil.com":      "/",
+		"https://evil.com": "/",
+		"":                 "/",
+		"relative/path":    "/",
+	}
+	for in, want := range cases {
+		if got := localRedirectTarget(in); got != want {
+			t.Errorf("localRedirectTarget(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
 func TestParseCertSubjectErrors(t *testing.T) {
 	bad := []string{
 		`CN=bad\0`,  // hex escape truncated at end of string
