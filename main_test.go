@@ -61,9 +61,9 @@ func TestParseCertSubject(t *testing.T) {
 
 func TestParseCertSubjectErrors(t *testing.T) {
 	bad := []string{
-		`CN=bad\0`,   // hex escape truncated at end of string
-		`CN=bad\0,`,  // hex escape with only one digit before separator
-		`CN=bad\`,    // backslash at end of string
+		`CN=bad\0`,  // hex escape truncated at end of string
+		`CN=bad\0,`, // hex escape with only one digit before separator
+		`CN=bad\`,   // backslash at end of string
 	}
 	for _, s := range bad {
 		if _, err := parseCertSubject(s); err == nil {
