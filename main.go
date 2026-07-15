@@ -317,7 +317,7 @@ func main() {
 			return
 		}
 
-		log.Printf("userInfo = %+v", userInfo)
+		log.Printf("authenticated %s via oauth2", userInfo.User)
 		cookieValue, err := cookieSerde.Encode(cookieName, userInfo)
 		if err != nil {
 			log.Print(err)
@@ -351,7 +351,6 @@ func main() {
 		// check for TLS client certificate
 		tlsClientSubject := r.Header.Get("X-Tls-Client-Subject")
 		if tlsClientSubject != "" {
-			log.Print("tlsClientSubject: ", tlsClientSubject)
 			if err := userInfoFromCertSubject(tlsClientSubject, &userInfo); err == nil {
 				log.Print("authenticated by client certificate")
 				authenticated = true
@@ -382,7 +381,6 @@ func main() {
 			return
 		}
 
-		log.Printf("userInfo: %+v", userInfo)
 		r.Header.Set("X-Auth-Name", userInfo.Name)
 		r.Header.Set("X-Auth-Email", userInfo.Email)
 		r.Header.Set("X-Auth-User", userInfo.User)
