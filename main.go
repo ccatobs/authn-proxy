@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -22,12 +24,14 @@ import (
 
 const (
 	cookieName        = "auth1"
+	stateCookieName   = "auth1_state"
 	cookieMaxAge      = 7 * 24 * 60 * 60 // 7 days
 	oauth2StateMaxAge = 10 * 60          // 10 minutes
 )
 
 type OAuth2State struct {
 	RedirectURL string
+	Nonce       string
 }
 
 type UserInfo struct {
@@ -217,6 +221,28 @@ func createAuthCookie(value string, maxAge int) http.Cookie {
 	}
 }
 
+// createStateCookie holds the per-flow CSRF nonce that binds an OAuth2 callback
+// to the browser that started the flow (double-submit against the encrypted state).
+func createStateCookie(value string, maxAge int) http.Cookie {
+	return http.Cookie{
+		HttpOnly: true,
+		MaxAge:   maxAge,
+		Name:     stateCookieName,
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
+		Secure:   true,
+		Value:    value,
+	}
+}
+
+func randomNonce() (string, error) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
 func main() {
 	cookieSerde := securecookie.New(
 		securecookie.GenerateRandomKey(64),
@@ -295,6 +321,24 @@ func main() {
 			httpError(w, http.StatusBadRequest)
 			return
 		}
+
+		// CSRF protection: the nonce carried in the encrypted state must match
+		// the nonce cookie set on this browser when the flow began.
+		nonceCookie, err := r.Cookie(stateCookieName)
+		if err != nil {
+			log.Print("missing oauth2 state cookie")
+			httpError(w, http.StatusBadRequest)
+			return
+		}
+		if state.Nonce == "" || subtle.ConstantTimeCompare([]byte(nonceCookie.Value), []byte(state.Nonce)) != 1 {
+			log.Print("oauth2 state nonce mismatch")
+			httpError(w, http.StatusBadRequest)
+			return
+		}
+		// the nonce is single-use; clear it now that it has served its purpose
+		clearStateCookie := createStateCookie("", -1)
+		http.SetCookie(w, &clearStateCookie)
+
 		log.Printf("got redirectURL %s", state.RedirectURL)
 		oauth2Token, err := oauth2Config.Exchange(ctx, r.URL.Query().Get("code"))
 		if err != nil {
@@ -359,13 +403,21 @@ func main() {
 
 		if !authenticated {
 			log.Printf("not logged in")
-			state := OAuth2State{RedirectURL: r.RequestURI}
+			nonce, err := randomNonce()
+			if err != nil {
+				log.Print(err)
+				httpError(w, http.StatusInternalServerError)
+				return
+			}
+			state := OAuth2State{RedirectURL: r.RequestURI, Nonce: nonce}
 			stateString, err := stateSerde.Encode("state", state)
 			if err != nil {
 				log.Print(err)
 				httpError(w, http.StatusInternalServerError)
 				return
 			}
+			stateCookie := createStateCookie(nonce, oauth2StateMaxAge)
+			http.SetCookie(w, &stateCookie)
 			http.Redirect(w, r, oauth2Config.AuthCodeURL(stateString), http.StatusFound)
 			return
 		}
