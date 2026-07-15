@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httputil"
@@ -51,7 +50,7 @@ func getFromEnv(name string) string {
 		log.Fatalf("missing required environment variable: %s", name)
 	}
 	if strings.HasPrefix(v, "file:/") {
-		b, err := ioutil.ReadFile(v[5:])
+		b, err := os.ReadFile(v[5:])
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -272,7 +271,7 @@ func main() {
 	// example upstreams value: /api=http://localhost:9001,/some/path=http://host/other/path
 	upstreams := getFromEnv("UPSTREAMS")
 	proxies := http.NewServeMux()
-	for _, upstream := range strings.Split(upstreams, ",") {
+	for upstream := range strings.SplitSeq(upstreams, ",") {
 		parts := strings.SplitN(upstream, "=", 2)
 		if len(parts) != 2 {
 			log.Fatal("bad upstream: ", upstream)
@@ -294,14 +293,16 @@ func main() {
 		pattern = patternWithoutTrailingSlash + "/"
 
 		log.Printf("routing %v -> %v", pattern, u)
-		proxy := httputil.NewSingleHostReverseProxy(u)
-		origDirector := proxy.Director
-		proxy.Director = func(r *http.Request) {
-			origURL := r.URL.String()
-			r.URL.Path = strings.TrimPrefix(r.URL.Path, patternWithoutTrailingSlash)
-			r.URL.RawPath = strings.TrimPrefix(r.URL.RawPath, patternWithoutTrailingSlash)
-			origDirector(r)
-			log.Printf("debug: redirected %s -> %s", origURL, r.URL.String())
+		proxy := &httputil.ReverseProxy{
+			Rewrite: func(pr *httputil.ProxyRequest) {
+				origURL := pr.In.URL.String()
+				pr.Out.URL.Path = strings.TrimPrefix(pr.Out.URL.Path, patternWithoutTrailingSlash)
+				pr.Out.URL.RawPath = strings.TrimPrefix(pr.Out.URL.RawPath, patternWithoutTrailingSlash)
+				pr.SetURL(u)
+				pr.Out.Host = pr.In.Host // preserve client Host header (SetURL clears it)
+				pr.SetXForwarded()
+				log.Printf("debug: redirected %s -> %s", origURL, pr.Out.URL.String())
+			},
 		}
 		proxies.Handle(pattern, proxy)
 	}
